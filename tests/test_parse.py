@@ -20,6 +20,12 @@ TODAY = date(2026, 11, 11)  # Wednesday
         ("2025-12-01", date(2025, 12, 1)),
         ("12/01/2025", date(2025, 12, 1)),  # US style: month/day/year
         ("12/1/2025", date(2025, 12, 1)),
+        ("2025/12/04", date(2025, 12, 4)),  # from autograder feedback
+        ("2025/12/4", date(2025, 12, 4)),
+        ("2025.12.04", date(2025, 12, 4)),
+        ("12-04-2025", date(2025, 12, 4)),  # US style with dashes
+        ("12.04.2025", date(2025, 12, 4)),
+        ("Thursday, December 4, 2025", date(2025, 12, 4)),  # leading weekday
         ("Sep 3, 2026", date(2026, 9, 3)),
         ("September 23rd, 2026", date(2026, 9, 23)),
         ("February 29, 2024", date(2024, 2, 29)),  # leap day is valid

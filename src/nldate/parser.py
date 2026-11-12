@@ -72,7 +72,9 @@ def _normalize(s: str) -> str:
     """Lowercase, drop punctuation and ordinal suffixes, and turn number
     words into digits, so that the patterns below have less to handle."""
     s = s.lower()
-    s = re.sub(r"[,.!?]", " ", s)  # "Dec. 1st, 2025" -> "dec  1st  2025"
+    s = re.sub(r"[,!?]", " ", s)  # "Dec 1st, 2025" -> "dec 1st  2025"
+    # Drop periods, except between digits so "2025.12.04" survives.
+    s = re.sub(r"(?<!\d)\.|\.(?!\d)", " ", s)  # "Dec. 1" -> "dec  1"
     s = re.sub(r"\b(\d+)(st|nd|rd|th)\b", r"\1", s)  # "1st" -> "1"
     words = [str(NUMBER_WORDS.get(w, w)) for w in s.split()]  # also squashes spaces
     return " ".join(words)
@@ -118,15 +120,21 @@ def _parse_expr(text: str, today: date) -> date:
 
 
 def _parse_absolute(text: str, today: date) -> date:
-    # ISO: 2025-12-01
-    m = re.fullmatch(r"(\d{4})-(\d{1,2})-(\d{1,2})", text)
+    # A leading weekday is just decoration: "thursday december 4 2025"
+    m = re.fullmatch(rf"(?:{_WEEKDAY}) (.+)", text)
     if m:
-        return _make_date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        return _parse_absolute(m.group(1), today)
 
-    # US: 12/01/2025 (month/day/year)
-    m = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{4})", text)
+    # Year first: 2025-12-01, 2025/12/01, 2025.12.01
+    # ([-/.]) captures the separator; \2 requires the same one again.
+    m = re.fullmatch(r"(\d{4})([-/.])(\d{1,2})\2(\d{1,2})", text)
     if m:
-        return _make_date(int(m.group(3)), int(m.group(1)), int(m.group(2)))
+        return _make_date(int(m.group(1)), int(m.group(3)), int(m.group(4)))
+
+    # US, year last: 12/01/2025, 12-01-2025, 12.01.2025 (month/day/year)
+    m = re.fullmatch(r"(\d{1,2})([-/.])(\d{1,2})\2(\d{4})", text)
+    if m:
+        return _make_date(int(m.group(4)), int(m.group(1)), int(m.group(3)))
 
     # Month first: "december 1 2025", "march 15"
     m = re.fullmatch(rf"({_MONTH}) (\d{{1,2}})(?: (\d{{4}}))?", text)
